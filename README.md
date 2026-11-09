@@ -2,6 +2,8 @@
 
 Fish are projected onto a white blanket or the floor in front of your baby. The webcam watches baby's hands with MediaPipe hand tracking: when she reaches out, nearby fish swim over and circle baby's hand. When she slaps the floor, they scatter with a splash of bubbles and a "bloop".
 
+🎥 **See it in action:** [watch the Instagram reel](https://www.instagram.com/reel/DfgbFkXxLg8/)
+
 ## What you need
 
 - Laptop with Chrome, a webcam, and a projector (HDMI from the laptop)
