@@ -1,0 +1,5 @@
+# Only the app goes in the repo. Videos, voiceovers and everything else stay local.
+*
+!.gitignore
+!index.html
+!README.md
