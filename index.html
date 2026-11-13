@@ -8,7 +8,7 @@
 <style>
   :root {
     color-scheme: dark;
-    --panel-bg: rgba(10, 28, 48, 0.94);
+    --panel-bg: rgba(10, 28, 48, 0.95);
     --panel-fg: #eef7ff;
     --panel-muted: #a9c3da;
     --accent: #ffcf5c;
@@ -19,93 +19,150 @@
   }
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
     font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; }
-  #stage { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #stage, #water { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+  #water { pointer-events: none; }
   body.clean #stage { cursor: none; }
   video { display: none; }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .6s ease; }
+  #fade.on { opacity: 1; }
 
-  #panel { position: fixed; top: 14px; left: 14px; width: 300px; max-height: calc(100vh - 28px);
-    overflow: auto; background: var(--panel-bg); color: var(--panel-fg); border-radius: 14px;
-    padding: 16px 18px; font-size: 13px; line-height: 1.4; box-shadow: 0 10px 40px rgba(0,0,0,.45);
+  #panel { position: fixed; top: 14px; left: 14px; width: 320px; max-height: calc(100vh - 28px);
+    overflow: auto; background: var(--panel-bg); color: var(--panel-fg); border-radius: 16px;
+    padding: 16px 18px; font-size: 14px; line-height: 1.4; box-shadow: 0 10px 40px rgba(0,0,0,.45);
     box-sizing: border-box; }
   body.clean #panel { display: none; }
   /* While calibrating, park the panel in the middle so all four corner dots stay visible */
   body.calibrating #panel { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 380px; }
   body.calibrating #panel .hide-when-cal { display: none; }
-  #panel h1 { font-size: 17px; margin: 0 0 10px; }
-  #panel h2 { font-size: 13px; margin: 16px 0 4px; color: var(--accent); font-weight: 600; }
+  .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  #panel h1 { font-size: 18px; margin: 0; }
+  #langBtn { width: auto; margin: 0; padding: 4px 10px; font-size: 12px; }
+  #panel h2 { font-size: 13px; margin: 18px 0 6px; color: var(--accent); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
   label { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 8px 0; }
-  input[type=range] { width: 130px; accent-color: var(--accent); }
+  input[type=range] { width: 140px; accent-color: var(--accent); }
   input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
-  select { background: var(--control); color: var(--panel-fg); border: 0; border-radius: 6px; padding: 4px 6px; max-width: 160px; }
-  button { width: 100%; margin-top: 8px; padding: 9px 10px; border: 0; border-radius: 9px;
-    background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 13px; cursor: pointer; }
+  input[type=date], select { background: var(--control); color: var(--panel-fg); border: 0; border-radius: 6px; padding: 4px 6px; font: inherit; font-size: 13px; }
+  select { max-width: 160px; }
+  button { width: 100%; margin-top: 8px; padding: 10px 12px; border: 0; border-radius: 10px;
+    background: var(--accent); color: var(--accent-ink); font-weight: 700; font-size: 14px; cursor: pointer; }
+  button.big { font-size: 17px; padding: 14px; }
   button.secondary { background: var(--control); color: var(--panel-fg); font-weight: 600; }
   button:disabled { opacity: .6; cursor: default; }
-  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  #preview { width: 100%; border-radius: 8px; background: #111; display: block; margin-top: 6px; cursor: crosshair; }
-  #status { margin-top: 10px; font-size: 12px; color: var(--ok); }
+  button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #preview { width: 100%; border-radius: 8px; background: #111; display: block; margin-top: 10px; cursor: crosshair; }
+  #status { margin-top: 8px; font-size: 13px; color: var(--ok); min-height: 1.4em; }
   #status.warn { color: var(--warn); }
   .hint { color: var(--panel-muted); font-size: 12px; margin: 4px 0; }
-  .row { display: flex; gap: 8px; }
-  .row button { flex: 1; }
+
+  .scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+  .scenes button { margin: 0; padding: 10px 4px 8px; background: var(--control); color: var(--panel-fg);
+    font-weight: 600; font-size: 12px; line-height: 1.2; border: 2px solid transparent; }
+  .scenes button .ico { display: block; font-size: 28px; margin-bottom: 4px; }
+  .scenes button[aria-pressed=true] { border-color: var(--accent); background: #2b4f75; }
+
+  .age { display: flex; align-items: center; gap: 12px; }
+  .age input { flex: 1; width: auto; }
+  #ageVal { font-weight: 700; min-width: 76px; text-align: right; }
+
+  details { margin-top: 18px; border-top: 1px solid rgba(255,255,255,.12); padding-top: 10px; }
+  summary { cursor: pointer; color: var(--panel-muted); font-size: 13px; }
+  details h2 { margin-top: 14px !important; }
   #meter { height: 8px; background: var(--control); border-radius: 4px; position: relative; overflow: hidden; margin: 4px 0 2px; }
   #meterFill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--ok); transition: width 60ms linear; }
   #meterMark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--warn); }
   kbd { background: var(--control); border-radius: 4px; padding: 0 5px; font-size: 11px; }
+
+  /* Small gear that shows up when someone moves the mouse while the panel is hidden */
+  #menuBtn { position: fixed; top: 14px; left: 14px; width: auto; margin: 0; padding: 10px 14px; font-size: 20px;
+    background: rgba(10,28,48,.8); color: #fff; border-radius: 12px; opacity: 0; pointer-events: none; transition: opacity .3s; }
+  body.clean.mouse-awake #menuBtn { opacity: 1; pointer-events: auto; }
+  body:not(.clean) #menuBtn { display: none; }
 </style>
 </head>
 <body>
 <canvas id="stage"></canvas>
 <video id="video" playsinline muted></video>
+<div id="fade"></div>
+<button id="menuBtn" aria-label="Menu">⚙︎</button>
 
 <div id="panel">
-  <h1>🐠 Tummy-Time Aquarium</h1>
-
-  <div class="hide-when-cal">
-    <button id="startBtn">Start camera</button>
-    <label>Camera <select id="cameraSel"><option value="">Default</option></select></label>
+  <div class="top">
+    <h1>🐠 Tummy-Time</h1>
+    <button id="langBtn" class="secondary">ES</button>
   </div>
 
+  <div class="hide-when-cal">
+    <button id="startBtn" class="big" data-t="start"></button>
+  </div>
   <canvas id="preview" width="320" height="180" aria-label="Camera preview"></canvas>
-  <div id="status">Move the mouse over the water to test. Click to splash.</div>
-
-  <h2>Line up camera and projector</h2>
-  <div class="row">
-    <button id="calBtn" class="secondary">Calibrate (C)</button>
-    <button id="clearCalBtn" class="secondary hide-when-cal">Clear</button>
-  </div>
-  <p class="hint" id="calHint">Not calibrated: the whole camera picture maps to the whole screen.</p>
-  <label class="hide-when-cal">Mirror camera (uncalibrated only) <input type="checkbox" id="mirror"></label>
+  <div id="status"></div>
 
   <div class="hide-when-cal">
-    <h2>Fish</h2>
-    <label>How many <input type="range" id="fishCount" min="3" max="30" step="1"></label>
-    <label>Size <input type="range" id="fishSize" min="0.5" max="2" step="0.05"></label>
-    <label>Reach distance <input type="range" id="reach" min="0.15" max="0.9" step="0.01"></label>
-    <label>Swim speed <input type="range" id="speed" min="0.4" max="2" step="0.05"></label>
+    <h2 data-t="scene"></h2>
+    <div class="scenes" id="scenes"></div>
+    <p class="hint" data-t="sceneHint"></p>
 
-    <h2>Slap detection</h2>
-    <label>Slap threshold <input type="range" id="slapThresh" min="2" max="25" step="0.5"></label>
-    <div id="meter"><div id="meterFill"></div><div id="meterMark"></div></div>
-    <p class="hint">Green bar = hand motion right now. A slap fires when it crosses the red line. Raise the threshold if fish scatter when she's just reaching.</p>
+    <h2 data-t="age"></h2>
+    <div class="age"><input type="range" id="ageMonths" min="0" max="24" step="1"><span id="ageVal"></span></div>
+    <p class="hint" id="ageHint"></p>
 
-    <h2>Look &amp; sound</h2>
-    <label>Water glow <input type="range" id="bgGlow" min="0" max="1" step="0.05"></label>
-    <label>Light under hand <input type="checkbox" id="handGlow"></label>
-    <label>Show hand dots <input type="checkbox" id="showDots"></label>
-    <label>Sound volume <input type="range" id="volume" min="0" max="1" step="0.05"></label>
+    <h2 data-t="sound"></h2>
+    <div class="age"><span>🔈</span><input type="range" id="volume" min="0" max="1" step="0.05"><span>🔊</span></div>
+  </div>
 
-    <p class="hint" style="margin-top:14px"><kbd>H</kbd> hide panel · <kbd>F</kbd> fullscreen · <kbd>C</kbd> calibrate · <kbd>Esc</kbd> cancel</p>
+  <button id="calBtn" class="secondary" data-t="lineUp"></button>
+  <p class="hint" id="calHint"></p>
+
+  <div class="hide-when-cal">
+    <button id="goBtn" data-t="go"></button>
+    <p class="hint" data-t="goHint"></p>
+
+    <details>
+      <summary data-t="advanced"></summary>
+
+      <h2 data-t="camera"></h2>
+      <label><span data-t="whichCamera"></span> <select id="cameraSel"><option value=""></option></select></label>
+      <label><span data-t="mirror"></span> <input type="checkbox" id="mirror"></label>
+      <button id="clearCalBtn" class="secondary" data-t="clearCal"></button>
+
+      <h2 data-t="animals"></h2>
+      <label><span data-t="howMany"></span> <input type="range" id="fishCount" min="3" max="30" step="1"></label>
+      <label><span data-t="size"></span> <input type="range" id="fishSize" min="0.5" max="2" step="0.05"></label>
+      <label><span data-t="reach"></span> <input type="range" id="reach" min="0.15" max="0.9" step="0.01"></label>
+      <label><span data-t="speed"></span> <input type="range" id="speed" min="0.4" max="2" step="0.05"></label>
+      <label><span data-t="autoScene"></span>
+        <select id="autoScene"><option value="0"></option><option value="2"></option><option value="5"></option><option value="10"></option></select></label>
+      <label><span data-t="birthday"></span> <input type="date" id="birthday"></label>
+
+      <h2 data-t="slap"></h2>
+      <label><span data-t="slapThresh"></span> <input type="range" id="slapThresh" min="2" max="25" step="0.5"></label>
+      <div id="meter"><div id="meterFill"></div><div id="meterMark"></div></div>
+      <p class="hint" data-t="slapHint"></p>
+
+      <h2 data-t="look"></h2>
+      <label><span data-t="glow"></span> <input type="range" id="bgGlow" min="0" max="1" step="0.05"></label>
+      <label><span data-t="handGlow"></span> <input type="checkbox" id="handGlow"></label>
+      <label><span data-t="gpu"></span> <input type="checkbox" id="gpuWater"></label>
+      <label><span data-t="showDots"></span> <input type="checkbox" id="showDots"></label>
+
+      <p class="hint" style="margin-top:14px" data-t="keys"></p>
+    </details>
   </div>
 </div>
 
+
 <script type="module">
+// Scenes live in the scenes/ folder, one file each (see scenes/README.md). This file is the engine:
+// settings and panel, camera and hand tracking, the shared animal behaviour, food, particles, sound and the GPU layer.
+
 // ---------- Settings ----------
 const DEFAULTS = {
   fishCount: 9, fishSize: 1, reach: 0.45, speed: 1, slapThresh: 9,
   bgGlow: 0.55, handGlow: true, showDots: false, volume: 0.5, mirror: true,
   calib: null, // { cam: [[x,y]x4 normalized], proj: [[x,y]x4 normalized] }
   cameraId: '',
+  ageMonths: 10, birthday: '', gpuWater: true, scene: 'pond', autoScene: 0,
+  lang: (navigator.language || '').toLowerCase().startsWith('es') ? 'es' : 'en',
 };
 let S = { ...DEFAULTS };
 try { Object.assign(S, JSON.parse(localStorage.getItem('tummyAquarium') || '{}')); } catch {}
@@ -115,29 +172,108 @@ const $ = id => document.getElementById(id);
 const stage = $('stage'), ctx = stage.getContext('2d');
 const preview = $('preview'), pctx = preview.getContext('2d');
 const video = $('video');
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
-for (const key of ['fishCount', 'fishSize', 'reach', 'speed', 'slapThresh', 'bgGlow', 'volume']) {
-  const el = $(key); el.value = S[key];
-  el.addEventListener('input', () => { S[key] = parseFloat(el.value); save(); if (key === 'fishCount') syncFishCount(); });
+// ---------- Words (English / Spanish) ----------
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const I18N = {
+  en: {
+    start: '1 · ▶ Start camera', restart: '1 · ↻ Restart camera', scene: 'Scene', age: "Baby's age", sound: 'Sound',
+    sceneHint: 'Hand still for a moment → food appears. Slap → they swim away.',
+    months: n => plural(n, 'month', 'months'),
+    lineUp: '2 · 🎯 Line up camera & projector', cancel: 'Cancel',
+    go: '3 · ⛶ Full screen', goHint: 'Hides this panel. Move the mouse and click ⚙︎ to bring it back.',
+    advanced: 'Advanced settings', camera: 'Camera', whichCamera: 'Which camera', defaultCam: 'Default',
+    mirror: 'Mirror (when not lined up)', clearCal: 'Forget line-up',
+    animals: 'Animals', howMany: 'How many', size: 'Size', reach: 'How far they come', speed: 'Speed',
+    autoScene: 'Change scene', never: 'Never', everyMin: n => `Every ${n} min`, birthday: 'Birthday (age updates itself)',
+    slap: 'Slap detection', slapThresh: 'Slap strength needed',
+    slapHint: 'Green bar = hand movement now. A slap fires when it crosses the red line. Raise it if the animals run away when baby is only reaching.',
+    look: 'Look', glow: 'Background light', handGlow: 'Light under hand', gpu: 'Realistic effects (GPU)', showDots: 'Show hand dots',
+    keys: '<kbd>H</kbd> hide panel · <kbd>F</kbd> full screen · <kbd>N</kbd> next scene · <kbd>C</kbd> line up · <kbd>Esc</kbd> cancel',
+    idle: 'Try it with the mouse: move = hand, hold still = food, click = slap.',
+    noScenes: 'No scenes found. Start the app with the local server (see README).',
+    loading: 'Loading hand tracker…',
+    readyCal: 'Ready ✓ Watching for hands. Press Full screen.',
+    readyNoCal: 'Watching for hands ✓ Next: Line up camera & projector.',
+    camFail: e => `The camera didn't start: ${e}`,
+    calFirst: 'Start the camera first.',
+    dots: ['1 (red)', '2 (yellow)', '3 (blue)', '4 (green)'],
+    calClick: d => `Coloured dots are on the floor now. In the camera picture, click the centre of dot ${d}.`,
+    calBad: "Those points didn't work. Try again.", calDone: 'Lined up ✓ Put your hand on the blanket to check.',
+    calCancel: 'Line-up cancelled.', calCleared: 'Line-up forgotten.',
+    calYes: '✓ Lined up: animals go to real hands.', calNo: 'Not lined up yet. Do this once after placing the camera and projector.',
+    gpuFail: 'This computer cannot do the realistic effects; using the simple ones.',
+    stageNames: ['High contrast: black, white & red', 'Bold, simple colours', 'Full colour', 'Rainbow: lots of colours'],
+  },
+  es: {
+    start: '1 · ▶ Encender cámara', restart: '1 · ↻ Reiniciar cámara', scene: 'Escenario', age: 'Edad del bebé', sound: 'Sonido',
+    sceneHint: 'Mano quieta un momento → aparece comida. Golpe → se van nadando.',
+    months: n => plural(n, 'mes', 'meses'),
+    lineUp: '2 · 🎯 Alinear cámara y proyector', cancel: 'Cancelar',
+    go: '3 · ⛶ Pantalla completa', goHint: 'Oculta este panel. Mueve el mouse y haz clic en ⚙︎ para volver.',
+    advanced: 'Ajustes avanzados', camera: 'Cámara', whichCamera: 'Cuál cámara', defaultCam: 'Predeterminada',
+    mirror: 'Espejo (si no está alineado)', clearCal: 'Olvidar alineación',
+    animals: 'Animales', howMany: 'Cuántos', size: 'Tamaño', reach: 'Qué tan lejos vienen', speed: 'Velocidad',
+    autoScene: 'Cambiar escenario', never: 'Nunca', everyMin: n => `Cada ${n} min`, birthday: 'Cumpleaños (la edad se actualiza sola)',
+    slap: 'Detección de golpe', slapThresh: 'Fuerza de golpe necesaria',
+    slapHint: 'Barra verde = movimiento de la mano ahora. Cuenta como golpe al pasar la línea roja. Súbela si los animales huyen cuando el bebé solo estira la mano.',
+    look: 'Apariencia', glow: 'Luz del fondo', handGlow: 'Luz bajo la mano', gpu: 'Efectos realistas (GPU)', showDots: 'Mostrar puntos de la mano',
+    keys: '<kbd>H</kbd> ocultar panel · <kbd>F</kbd> pantalla completa · <kbd>N</kbd> siguiente escenario · <kbd>C</kbd> alinear · <kbd>Esc</kbd> cancelar',
+    idle: 'Prueba con el mouse: moverlo = mano, dejarlo quieto = comida, clic = golpe.',
+    noScenes: 'No se encontraron escenarios. Abre la app con el servidor local (ver README).',
+    loading: 'Cargando el detector de manos…',
+    readyCal: 'Listo ✓ Buscando manos. Presiona Pantalla completa.',
+    readyNoCal: 'Buscando manos ✓ Siguiente: Alinear cámara y proyector.',
+    camFail: e => `La cámara no encendió: ${e}`,
+    calFirst: 'Primero enciende la cámara.',
+    dots: ['1 (rojo)', '2 (amarillo)', '3 (azul)', '4 (verde)'],
+    calClick: d => `Ya hay puntos de colores en el piso. En la imagen de la cámara, haz clic en el centro del punto ${d}.`,
+    calBad: 'Esos puntos no funcionaron. Intenta otra vez.', calDone: 'Alineado ✓ Pon tu mano en la cobija para probar.',
+    calCancel: 'Alineación cancelada.', calCleared: 'Alineación olvidada.',
+    calYes: '✓ Alineado: los animales van a las manos reales.', calNo: 'Aún no está alineado. Hazlo una vez después de colocar la cámara y el proyector.',
+    gpuFail: 'Esta computadora no puede con los efectos realistas; uso los sencillos.',
+    stageNames: ['Alto contraste: negro, blanco y rojo', 'Colores fuertes y sencillos', 'A todo color', 'Arcoíris: muchos colores'],
+  },
+};
+const T = () => I18N[S.lang] || I18N.en;
+let lastStatus = ['idle', false, []];
+function setStatus(key, warn = false, ...args) {
+  lastStatus = [key, warn, args];
+  const v = T()[key], s = $('status');
+  s.textContent = typeof v === 'function' ? v(...args) : (v ?? key);
+  s.classList.toggle('warn', warn);
 }
-for (const key of ['handGlow', 'showDots', 'mirror']) {
-  const el = $(key); el.checked = S[key];
-  el.addEventListener('change', () => { S[key] = el.checked; save(); });
+function applyLang() {
+  const t = T();
+  document.documentElement.lang = S.lang;
+  for (const el of document.querySelectorAll('[data-t]')) {
+    const v = t[el.dataset.t]; if (typeof v === 'string') el.innerHTML = v;
+  }
+  $('langBtn').textContent = S.lang === 'es' ? 'EN' : 'ES';
+  $('startBtn').textContent = video.srcObject ? t.restart : t.start;
+  if (calibrating) $('calBtn').textContent = t.cancel;
+  for (const o of $('autoScene').options) o.textContent = o.value === '0' ? t.never : t.everyMin(+o.value);
+  if ($('cameraSel').options[0]?.value === '') $('cameraSel').options[0].textContent = t.defaultCam;
+  buildSceneButtons(); updateAgeText(); rebuildHomography(); setStatus(lastStatus[0], lastStatus[1], ...lastStatus[2]);
 }
-
-function setStatus(msg, warn = false) { const s = $('status'); s.textContent = msg; s.classList.toggle('warn', warn); }
+$('langBtn').addEventListener('click', () => { S.lang = S.lang === 'es' ? 'en' : 'es'; save(); applyLang(); });
 
 // ---------- Canvas sizing ----------
-let fish = [];
+let critters = [];
 let W = 0, H = 0, DPR = 1, UNIT = 1; // UNIT = min(W,H), used to size everything
+let layoutTimer = 0;
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2);
   const wasEmpty = UNIT < 2;
   W = window.innerWidth; H = window.innerHeight; UNIT = Math.min(W, H);
-  // If the page loaded while hidden (zero size), the fish all spawned at 0,0: spread them out now
-  if (wasEmpty && UNIT >= 2) for (const f of fish) { f.x = rand(0.15, 0.85) * W; f.y = rand(0.15, 0.85) * H; }
+  // If the page loaded while hidden (zero size), everything spawned at 0,0: spread it out now
+  if (wasEmpty && UNIT >= 2) for (const f of critters) { f.x = rand(0.15, 0.85) * W; f.y = rand(0.15, 0.85) * H; }
   stage.width = Math.round(W * DPR); stage.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // let the scene redraw its decorations at the new size, once resizing settles
+  clearTimeout(layoutTimer); layoutTimer = setTimeout(() => SCENE?.decor?.layout?.(), 150);
 }
 window.addEventListener('resize', resize); resize();
 
@@ -167,12 +303,8 @@ function solveHomography(src, dst) {
 let Hmat = null;
 function rebuildHomography() {
   Hmat = S.calib ? solveHomography(S.calib.cam, S.calib.proj) : null;
-  $('calHint').textContent = Hmat
-    ? 'Calibrated ✓ Fish follow hands on the floor.'
-    : 'Not calibrated: the whole camera picture maps to the whole screen.';
+  $('calHint').textContent = Hmat ? T().calYes : T().calNo;
 }
-rebuildHomography();
-
 // normalized camera coords -> screen px
 function camToScreen(cx, cy) {
   if (Hmat) {
@@ -187,28 +319,31 @@ const CAL_INSET = 0.1;
 const CAL_PROJ = [[CAL_INSET, CAL_INSET], [1 - CAL_INSET, CAL_INSET], [1 - CAL_INSET, 1 - CAL_INSET], [CAL_INSET, 1 - CAL_INSET]];
 const CAL_COLORS = ['#ff4d4d', '#ffd23f', '#3fd0ff', '#7dff6a'];
 let calibrating = false, calClicks = [];
-
 function startCalibration() {
-  if (!video.srcObject) { setStatus('Start the camera first, then calibrate.', true); return; }
+  if (!video.srcObject) { setStatus('calFirst', true); return; }
   calibrating = true; calClicks = [];
   document.body.classList.add('calibrating'); document.body.classList.remove('clean');
-  setStatus('In the camera preview, click the centre of dot 1 (red).');
+  $('calBtn').textContent = T().cancel;
+  setStatus('calClick', false, T().dots[0]);
 }
-function endCalibration() { calibrating = false; document.body.classList.remove('calibrating'); }
-
+function endCalibration() {
+  calibrating = false; document.body.classList.remove('calibrating');
+  $('calBtn').textContent = T().lineUp;
+}
 preview.addEventListener('click', e => {
   if (!calibrating) return;
   const r = preview.getBoundingClientRect();
   calClicks.push([(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height]);
-  const names = ['1 (red)', '2 (yellow)', '3 (blue)', '4 (green)'];
-  if (calClicks.length < 4) { setStatus(`Now click the centre of dot ${names[calClicks.length]}.`); return; }
+  if (calClicks.length < 4) { setStatus('calClick', false, T().dots[calClicks.length]); return; }
   const cal = { cam: calClicks, proj: CAL_PROJ };
-  if (!solveHomography(cal.cam, cal.proj)) { setStatus('Those points didn\'t work. Try again (C).', true); endCalibration(); return; }
+  if (!solveHomography(cal.cam, cal.proj)) { setStatus('calBad', true); endCalibration(); return; }
   S.calib = cal; save(); rebuildHomography(); endCalibration();
-  setStatus('Calibrated! Wave your hand over the water to check.');
+  setStatus('calDone');
 });
-$('calBtn').addEventListener('click', () => calibrating ? endCalibration() : startCalibration());
-$('clearCalBtn').addEventListener('click', () => { S.calib = null; save(); rebuildHomography(); setStatus('Calibration cleared.'); });
+$('calBtn').addEventListener('click', () => {
+  if (calibrating) { endCalibration(); setStatus('calCancel'); } else startCalibration();
+});
+$('clearCalBtn').addEventListener('click', () => { S.calib = null; save(); rebuildHomography(); setStatus('calCleared'); });
 
 // ---------- Sound ----------
 let actx = null;
@@ -217,6 +352,7 @@ function audio() {
   if (actx.state === 'suspended') actx.resume();
   return actx;
 }
+// A pitch sweep ("bloop"), good for water
 function bloop(freqStart, freqEnd, dur, vol, delay = 0) {
   const a = audio(); if (!a || S.volume <= 0) return;
   const t = a.currentTime + delay;
@@ -229,139 +365,194 @@ function bloop(freqStart, freqEnd, dur, vol, delay = 0) {
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
 }
-function splashSound() {
-  bloop(520, 150, 0.35, 0.35);
-  for (let i = 0; i < 4; i++) bloop(700 + Math.random() * 700, 1400 + Math.random() * 600, 0.08, 0.12, 0.08 + i * 0.06 + Math.random() * 0.04);
-}
-function nibbleSound() { bloop(900 + Math.random() * 400, 1600, 0.07, 0.06); }
-
-// ---------- Fish (koi seen from above, like looking into a pond) ----------
-// spots: [colour, how many patches, patch size]
-const KOI = [
-  { base: '#f4efe4', fin: 'rgba(255,250,242,0.42)', spots: [['#d9361a', 4, 0.55]] },                       // kohaku
-  { base: '#f4efe4', fin: 'rgba(255,250,242,0.42)', spots: [['#d63a1c', 3, 0.5], ['#141414', 4, 0.22]] },  // sanke
-  { base: '#19191b', fin: 'rgba(30,30,34,0.5)', spots: [['#d4401e', 3, 0.55], ['#f1ece2', 2, 0.4]] },     // showa
-  { base: '#f2b42a', fin: 'rgba(255,214,120,0.45)', spots: [], metal: true },                               // ogon
-  { base: '#e6e4da', fin: 'rgba(250,250,245,0.42)', spots: [], metal: true },                               // platinum
-  { base: '#f4efe4', fin: 'rgba(255,250,242,0.42)', spots: [], tancho: true },                              // tancho
-  { base: '#e8691a', fin: 'rgba(255,165,95,0.45)', spots: [['#f6e7d2', 2, 0.4]] },                          // orange
-  { base: '#f5c42a', fin: 'rgba(255,224,130,0.45)', spots: [], metal: true },                               // yamabuki
-];
-// body half-width along the spine, nose (0) to tail base (1)
-const PROFILE = [[0, 0.5], [0.04, 0.74], [0.1, 0.9], [0.22, 1], [0.38, 0.95], [0.55, 0.76], [0.72, 0.5], [0.88, 0.3], [1, 0.2]];
-function widthAt(t) {
-  for (let i = 1; i < PROFILE.length; i++) if (t <= PROFILE[i][0]) {
-    const [s0, w0] = PROFILE[i - 1], [s1, w1] = PROFILE[i], k = (t - s0) / (s1 - s0);
-    return w0 + (w1 - w0) * k * k * (3 - 2 * k);
+// A soft bell
+function bell(freq, dur, vol, delay = 0) {
+  const a = audio(); if (!a || S.volume <= 0) return;
+  const t = a.currentTime + delay;
+  for (const [mult, v] of [[1, 1], [2.01, 0.25], [3.02, 0.08]]) {
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(freq * mult, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol * v * S.volume, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur / mult);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
   }
-  return 0.2;
 }
-const SPINE_N = 18;
-const rot = (x, y, a) => [x * Math.cos(a) - y * Math.sin(a), x * Math.sin(a) + y * Math.cos(a)];
+// Pentatonic notes always sound nice together, whatever order baby plays them in
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51, 1567.98, 1760];
 
-// Fine scale texture, filled over each body
-const scaleTile = document.createElement('canvas'); scaleTile.width = 14; scaleTile.height = 12;
-{
-  const g = scaleTile.getContext('2d');
-  g.strokeStyle = 'rgba(0,0,0,0.16)'; g.lineWidth = 1;
-  for (const [x, y] of [[0, 0], [14, 0], [7, 6], [0, 12], [14, 12]]) { g.beginPath(); g.arc(x, y, 7, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke(); }
-  g.strokeStyle = 'rgba(255,255,255,0.13)';
-  for (const [x, y] of [[0, 1], [14, 1], [7, 7], [0, 13], [14, 13]]) { g.beginPath(); g.arc(x, y, 5, 0.3 * Math.PI, 0.7 * Math.PI); g.stroke(); }
+// ---------- Age stages ----------
+// Newborns see strong contrast best (black, white, then red), colour vision fills in over the first months,
+// and toddlers enjoy lots of different colours. Each scene has a look for each stage.
+const STAGE_UP_TO = [3, 6, 12, Infinity];
+function ageNow() {
+  if (S.birthday) {
+    const b = new Date(S.birthday + 'T00:00'), n = new Date();
+    if (!isNaN(b)) return Math.max(0, (n.getFullYear() - b.getFullYear()) * 12 + n.getMonth() - b.getMonth() - (n.getDate() < b.getDate() ? 1 : 0));
+  }
+  return S.ageMonths;
 }
-const scalePattern = ctx.createPattern(scaleTile, 'repeat');
+const stageIndex = () => STAGE_UP_TO.findIndex(m => ageNow() < m);
 
-const rand = (a, b) => a + Math.random() * (b - a);
+// ---------- Food ----------
+// When a hand stays still for a moment, the scene drops food around it (pellets, flakes, flowers...).
+// Animals go for food before hands. A scene can also make food a place to rest (butterflies on flowers).
+const foods = [];
+function updateFoods(dt, hands) {
+  const F = SCENE.food;
+  if (!F) return;
+  for (const h of hands) {
+    h.still = h.speed < UNIT * 0.3 ? (h.still || 0) + dt : 0;
+    h.foodCd = Math.max(0, (h.foodCd || 0) - dt);
+    const active = foods.filter(f => !f.ambient).length;
+    if (h.still > 1.2 && h.foodCd <= 0 && active < (F.max || 10)) {
+      h.foodCd = F.every || 3;
+      for (const f of F.spawn(h)) foods.push({ age: 0, life: 20, vx: 0, vy: 0, ...f });
+    }
+  }
+  for (let i = foods.length - 1; i >= 0; i--) {
+    const f = foods[i];
+    f.age = (f.age || 0) + dt;
+    if (f.vx || f.vy) { f.x += f.vx * dt; f.y += f.vy * dt; f.vx *= 1 - dt * 1.5; f.vy *= 1 - dt * 1.5; }
+    F.update?.(f, dt);
+    if (f.eaten || f.age > f.life) { f.gone = true; foods.splice(i, 1); }
+  }
+}
+const foodReady = f => !f.eaten && !f.gone && (!SCENE.food.ready || SCENE.food.ready(f));
 
-class Fish {
-  constructor() {
+// ---------- Animals ----------
+// Shared behaviour: wander, go for food, come to the nearest hand within reach, circle it and "nibble",
+// run away from a slap. Each scene's animal decides how it looks (prepare/shadow/draw) and can tweak the motion.
+class Critter {
+  constructor(look) {
     this.x = rand(0.15, 0.85) * W; this.y = rand(0.15, 0.85) * H;
     const a = rand(0, Math.PI * 2);
     this.vx = Math.cos(a); this.vy = Math.sin(a);
     this.heading = a; this.wander = a;
     this.len = rand(0.8, 1.25);         // relative body length
     this.cruise = rand(0.8, 1.2);       // relative cruise speed
-    this.koi = KOI[Math.floor(Math.random() * KOI.length)];
-    this.girth = rand(0.9, 1.12); this.tailLen = rand(0.9, 1.25);
-    this.z = rand(0.2, 1);              // how far above the floor (shadow offset)
+    this.look = look;
+    this.z = rand(0.2, 1);              // how high above the floor (shadow offset, draw order)
     this.swim = 0; this.curv = 0;
-    this.patches = [];
-    for (const [color, n, size] of this.koi.spots) for (let i = 0; i < n; i++) {
-      const cs = rand(0.12, 0.85), ct = rand(-0.7, 0.7), blobs = [];
-      for (let b = 0; b < 3; b++) blobs.push({ s: cs + rand(-0.07, 0.07), t: ct + rand(-0.45, 0.45), r: size * rand(0.09, 0.15) });
-      this.patches.push({ color, blobs });
-    }
-    if (this.koi.tancho) this.patches.push({ color: '#d9361a', blobs: [{ s: 0.1, t: 0, r: 0.075 }] });
     this.phase = rand(0, 10); this.scared = 0; this.excite = 0; this.nibbleCd = rand(0, 2);
+    this.perched = 0; this.perchOn = null; this.lastPerch = null; this.restWish = 0; this.restCd = rand(2, 10);
+    this.sizeMul = 1; this.speedMul = 1;
   }
-  get L() { return UNIT * 0.17 * this.len * S.fishSize; }
-  update(dt, hands, fish) {
-    const L = this.L, base = UNIT * 0.12 * this.cruise * S.speed;
-    let ax = 0, ay = 0;
-
-    // Wander
-    this.wander += rand(-1, 1) * 2.2 * dt;
-    let desiredX = Math.cos(this.wander) * base, desiredY = Math.sin(this.wander) * base;
-    let target = null;
-
-    // Hands: swim toward the nearest one within reach
-    if (this.scared <= 0) {
-      let best = Infinity;
-      for (const h of hands) {
-        const d = Math.hypot(h.x - this.x, h.y - this.y);
-        if (d < S.reach * UNIT && d < best) { best = d; target = h; }
-      }
+  get L() { return UNIT * SCENE.size * this.len * S.fishSize * this.sizeMul; }
+  get base() { return UNIT * 0.12 * this.cruise * S.speed * SCENE.speed * this.speedMul; }
+  mouth() { return [this.x, this.y]; }
+  findFood() {
+    let best = null, bd = Infinity;
+    const [mx, my] = this.mouth();
+    for (const f of foods) {
+      if (!foodReady(f) || (f.busy && f.busy !== this) || f === this.lastPerch) continue;
+      if (f.ambient && this.restWish <= 0) continue;     // resting spots only matter when it wants a rest
+      const d = Math.hypot(f.x - mx, f.y - my);
+      if (d < (f.ambient ? UNIT * 0.35 : S.reach * UNIT * 1.6) && d < bd) { bd = d; best = f; }
     }
-    if (target) {
-      const dx = target.x - this.x, dy = target.y - this.y, d = Math.hypot(dx, dy) || 1;
-      const orbit = Math.max(target.r * 0.9, L * 0.6);
-      this.excite = Math.min(1, this.excite + dt * 2);
-      if (d > orbit) {
-        const sp = base * (1.4 + 0.8 * Math.min(1, d / (S.reach * UNIT)));
-        desiredX = dx / d * sp; desiredY = dy / d * sp;
-      } else {
-        // Circle the hand and "nibble"
-        const dir = (this.phase % 2 < 1) ? 1 : -1;
-        desiredX = (-dy / d * dir - dx / d * 0.4) * base;
-        desiredY = (dx / d * dir - dy / d * 0.4) * base;
-        this.nibbleCd -= dt;
-        if (this.nibbleCd <= 0) { this.nibbleCd = rand(1.2, 3); nibbleSound(); spawnBubbles(this.x, this.y, 2, 0.4); }
-      }
-      this.wander = Math.atan2(desiredY, desiredX);
+    return best;
+  }
+  reachFood(f) {
+    if (SCENE.food.perch) {
+      this.perched = rand(...SCENE.food.perch); this.perchOn = f; f.busy = this;
+      SCENE.sound.perch?.();
     } else {
-      this.excite = Math.max(0, this.excite - dt);
+      f.eaten = true; this.excite = 1;
+      SCENE.food.onEat?.(f, this); SCENE.sound.eat?.();
+      spawnParticles(f.x, f.y, 3, 0.3);
     }
+  }
+  leavePerch() {
+    const f = this.perchOn;
+    if (f && f.busy === this) f.busy = null;
+    this.lastPerch = f; this.perchOn = null; this.perched = 0;
+    this.restWish = 0; this.restCd = rand(6, 14);
+    const a = rand(0, Math.PI * 2); this.wander = a;
+    this.vx = Math.cos(a) * this.base * 1.5; this.vy = Math.sin(a) * this.base * 1.5;
+  }
+  update(dt, hands, all) {
+    const L = this.L, base = this.base;
+    // resting on a flower (or whatever the scene uses)
+    if (this.perched > 0) {
+      const f = this.perchOn;
+      this.perched -= dt;
+      if (this.perched > 0 && this.scared <= 0 && f && !f.gone) {
+        this.x += (f.x - this.x) * Math.min(1, dt * 8); this.y += (f.y - this.y) * Math.min(1, dt * 8);
+        this.vx = this.vy = 0; this.swim = 0; this.phase += dt * 1.2;
+        return;
+      }
+      this.leavePerch();
+    }
+    // now and then it feels like a rest
+    if (this.restWish > 0) this.restWish -= dt;
+    else if ((this.restCd -= dt) <= 0) { this.restWish = 6; this.restCd = rand(8, 18); }
 
+    let ax = 0, ay = 0;
+    this.wander += rand(-1, 1) * SCENE.wander * dt;
+    let desiredX = Math.cos(this.wander) * base, desiredY = Math.sin(this.wander) * base;
+    const food = this.scared <= 0 && SCENE.food ? this.findFood() : null;
+    if (food) {
+      const [mx, my] = this.mouth(), dx = food.x - mx, dy = food.y - my, d = Math.hypot(dx, dy) || 1;
+      const sp = base * (0.5 + 1.8 * Math.min(1, d / (L * 2)));       // hurry over, slow down to take it
+      desiredX = dx / d * sp; desiredY = dy / d * sp;
+      this.wander = Math.atan2(dy, dx); this.excite = Math.min(1, this.excite + dt * 2);
+      if (SCENE.food.perch && d < L * 0.8) food.busy = this;          // claim it so two don't land on one flower
+      if (d < L * (SCENE.food.perch ? 0.12 : 0.22)) this.reachFood(food);
+    } else {
+      let target = null;
+      if (this.scared <= 0) {
+        let best = Infinity;
+        for (const h of hands) {
+          const d = Math.hypot(h.x - this.x, h.y - this.y);
+          if (d < S.reach * UNIT && d < best) { best = d; target = h; }
+        }
+      }
+      if (target) {
+        const dx = target.x - this.x, dy = target.y - this.y, d = Math.hypot(dx, dy) || 1;
+        const orbit = Math.max(target.r * 0.9, L * 0.6);
+        this.excite = Math.min(1, this.excite + dt * 2);
+        if (d > orbit) {
+          const sp = base * (1.4 + 0.8 * Math.min(1, d / (S.reach * UNIT)));
+          desiredX = dx / d * sp; desiredY = dy / d * sp;
+        } else {
+          // Circle the hand and "nibble"
+          const dir = (this.phase % 2 < 1) ? 1 : -1;
+          desiredX = (-dy / d * dir - dx / d * 0.4) * base;
+          desiredY = (dx / d * dir - dy / d * 0.4) * base;
+          this.nibbleCd -= dt;
+          if (this.nibbleCd <= 0) { this.nibbleCd = rand(1.2, 3); SCENE.sound.nibble?.(); spawnParticles(this.x, this.y, 2, 0.4); }
+        }
+        this.wander = Math.atan2(desiredY, desiredX);
+      } else {
+        this.excite = Math.max(0, this.excite - dt);
+      }
+    }
     if (this.scared > 0) {
       this.scared -= dt;
       desiredX = Math.cos(this.wander) * base * 3.2; desiredY = Math.sin(this.wander) * base * 3.2;
     }
-
     const steer = this.scared > 0 ? 3 : 1.8;
     ax += (desiredX - this.vx) * steer; ay += (desiredY - this.vy) * steer;
-
-    // Keep some space from other fish
-    for (const o of fish) {
-      if (o === this) continue;
+    // Keep some space from the others
+    for (const o of all) {
+      if (o === this || o.perched > 0) continue;
       const dx = this.x - o.x, dy = this.y - o.y, d = Math.hypot(dx, dy), min = (L + o.L) * 0.32;
       if (d < min) {
         if (d < 0.01) { ax += rand(-1, 1) * base; ay += rand(-1, 1) * base; continue; }
         const f = (min - d) / min * base * 6; ax += dx / d * f; ay += dy / d * f;
       }
     }
-
     // Soft walls
     const m = UNIT * 0.08, k = base * 0.08;
     if (this.x < m) ax += (m - this.x) * k; if (this.x > W - m) ax -= (this.x - (W - m)) * k;
     if (this.y < m) ay += (m - this.y) * k; if (this.y > H - m) ay -= (this.y - (H - m)) * k;
     if (this.x < m || this.x > W - m || this.y < m || this.y > H - m)
       this.wander = Math.atan2(H / 2 - this.y, W / 2 - this.x) + rand(-0.6, 0.6);
-
     this.vx += ax * dt; this.vy += ay * dt;
     const sp = Math.hypot(this.vx, this.vy), max = base * (this.scared > 0 ? 4.5 : 2.6);
     if (sp > max) { this.vx *= max / sp; this.vy *= max / sp; }
     this.x += this.vx * dt; this.y += this.vy * dt;
     this.x = Math.max(-L, Math.min(W + L, this.x)); this.y = Math.max(-L, Math.min(H + L, this.y));
-
     // Turn smoothly toward the direction of travel; the body curves into turns
     let turn = 0;
     if (sp > 1) {
@@ -384,152 +575,81 @@ class Fish {
     this.wander = a + rand(-0.4, 0.4);
     this.scared = rand(1.2, 2.2); this.excite = 0;
   }
-  // Build the body outline from a wiggling spine
-  geometry() {
-    const L = this.L, N = SPINE_N, bodyLen = 0.74 * L, maxW = 0.1 * L * this.girth;
-    const c = Math.cos(this.heading), sn = Math.sin(this.heading);
-    const amp = 0.035 + 0.05 * this.swim;
-    const P = [];
-    for (let i = 0; i < N; i++) {
-      const t = i / (N - 1);
-      P.push({ t, lx: 0.4 * L - t * bodyLen, ly: L * (amp * (0.12 + t * t) * Math.sin(this.phase - 3.6 * t) + this.curv * t * t) });
-    }
-    for (let i = 0; i < N; i++) {
-      const a = P[Math.max(0, i - 1)], b = P[Math.min(N - 1, i + 1)], p = P[i];
-      let tx = b.lx - a.lx, ty = b.ly - a.ly; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
-      p.x = this.x + p.lx * c - p.ly * sn; p.y = this.y + p.lx * sn + p.ly * c;
-      p.tx = tx * c - ty * sn; p.ty = tx * sn + ty * c;          // points toward the tail
-      p.nx = -p.ty; p.ny = p.tx;                                   // sideways
-      p.w = widthAt(p.t) * maxW;
-    }
-    const side = (p, k) => [p.x + p.nx * p.w * k, p.y + p.ny * p.w * k];
-
-    const body = new Path2D();
-    const smoothSide = (k, from, to, step) => {
-      for (let i = from; i !== to; i += step) {
-        const [x1, y1] = side(P[i], k), [x2, y2] = side(P[i + step], k);
-        body.quadraticCurveTo(x1, y1, (x1 + x2) / 2, (y1 + y2) / 2);
-      }
-    };
-    const h0 = P[0], fx = -h0.tx, fy = -h0.ty;
-    const [lx0, ly0] = side(h0, 1), [rx0, ry0] = side(h0, -1);
-    body.moveTo(lx0, ly0);
-    smoothSide(1, 0, N - 1, 1);
-    body.lineTo(...side(P[N - 1], 1)); body.lineTo(...side(P[N - 1], -1));
-    smoothSide(-1, N - 1, 0, -1);
-    body.lineTo(rx0, ry0);
-    body.bezierCurveTo(rx0 + fx * h0.w * 1.05, ry0 + fy * h0.w * 1.05, lx0 + fx * h0.w * 1.05, ly0 + fy * h0.w * 1.05, lx0, ly0);
-    body.closePath();
-
-    // Tail: two flowing lobes that lag behind the body wave
-    const T = P[N - 1], tl = 0.32 * L * this.tailLen;
-    const wag = Math.sin(this.phase - 3.6 * 1.3) * (0.3 + 0.25 * this.swim) + this.curv * 1.5;
-    const dir = a => rot(T.tx, T.ty, wag + a);
-    const at = (a, d) => { const [x, y] = dir(a); return [T.x + x * d, T.y + y * d]; };
-    const tail = new Path2D();
-    tail.moveTo(...side(T, 1));
-    tail.quadraticCurveTo(...at(0.3, tl * 0.5), ...at(0.55, tl));
-    tail.quadraticCurveTo(...at(0.12, tl * 0.75), ...at(0, tl * 0.6));
-    tail.quadraticCurveTo(...at(-0.12, tl * 0.75), ...at(-0.55, tl));
-    tail.quadraticCurveTo(...at(-0.3, tl * 0.5), ...side(T, -1));
-    tail.closePath();
-    const rays = [];
-    for (let k = -4; k <= 4; k++) rays.push([T.x, T.y, ...at(k * 0.12, tl * (0.95 - Math.abs(k) * 0.05))]);
-
-    // Fins: pectoral (big, near head) and pelvic (small, mid-body)
-    const fins = new Path2D();
-    const flap = Math.sin(this.phase * 0.8) * 0.25 * (1 - this.swim * 0.6);
-    const addFin = (idx, len, wid, spread) => {
-      const p = P[idx];
-      for (const k of [1, -1]) {
-        const [dx, dy] = rot(p.tx, p.ty, k * (spread + flap));
-        const bx = p.x + p.nx * p.w * k * 0.8, by = p.y + p.ny * p.w * k * 0.8;
-        fins.ellipse(bx + dx * len * 0.85, by + dy * len * 0.85, len, wid, Math.atan2(dy, dx), 0, Math.PI * 2);
-        fins.closePath();
-      }
-    };
-    addFin(Math.round(0.2 * (N - 1)), 0.085 * L, 0.04 * L, 1.0);
-    addFin(Math.round(0.55 * (N - 1)), 0.045 * L, 0.022 * L, 0.8);
-    return { P, body, tail, fins, rays, maxW };
-  }
-  spinePoint(P, t, k) {
-    const f = Math.max(0, Math.min(1, t)) * (SPINE_N - 1), i = Math.min(SPINE_N - 2, Math.floor(f)), u = f - i;
-    const a = P[i], b = P[i + 1];
-    const w = a.w + (b.w - a.w) * u;
-    return [a.x + (b.x - a.x) * u + (a.nx + (b.nx - a.nx) * u) * w * k, a.y + (b.y - a.y) * u + (a.ny + (b.ny - a.ny) * u) * w * k];
-  }
-  draw(c, g) {
-    const L = this.L, { P, body, tail, fins, rays, maxW } = g, koi = this.koi;
-
-    // fins and tail are see-through
-    c.fillStyle = koi.fin; c.fill(fins); c.fill(tail);
-    c.strokeStyle = 'rgba(255,255,255,0.18)'; c.lineWidth = Math.max(0.6, L * 0.004);
-    c.beginPath(); for (const [x1, y1, x2, y2] of rays) { c.moveTo(x1, y1); c.lineTo(x2, y2); } c.stroke();
-
-    c.save();
-    c.fillStyle = koi.base; c.fill(body);
-    c.clip(body);
-    for (const patch of this.patches) {
-      c.fillStyle = patch.color; c.beginPath();
-      for (const b of patch.blobs) { const [x, y] = this.spinePoint(P, b.s, b.t); c.moveTo(x + b.r * L, y); c.arc(x, y, b.r * L, 0, Math.PI * 2); }
-      c.fill();
-    }
-    // scales
-    scalePattern.setTransform(new DOMMatrix().translate(this.x, this.y).rotate(this.heading * 180 / Math.PI).scale(L / 260));
-    c.fillStyle = scalePattern; c.fill(body);
-    // rounded shading: darker edges, light along the back
-    c.strokeStyle = 'rgba(0,0,0,0.3)'; c.lineWidth = maxW * 0.9; c.stroke(body);
-    c.lineCap = 'round'; c.lineJoin = 'round';
-    const backLine = (w, a) => {
-      c.strokeStyle = `rgba(255,255,255,${a})`; c.lineWidth = w; c.beginPath();
-      for (let i = 1; i < SPINE_N * 0.8; i++) i === 1 ? c.moveTo(P[i].x, P[i].y) : c.lineTo(P[i].x, P[i].y);
-      c.stroke();
-    };
-    const shimmer = koi.metal ? 0.12 + 0.08 * Math.sin(this.phase * 0.3 + this.x * 0.01) : 0;
-    backLine(maxW * 0.9, 0.08 + shimmer * 0.5); backLine(maxW * 0.35, 0.14 + shimmer);
-    // dorsal fin seen edge-on along the back
-    c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = Math.max(1, L * 0.012); c.beginPath();
-    for (let i = Math.round(SPINE_N * 0.3); i < SPINE_N * 0.68; i++) c.lineTo(P[i].x, P[i].y);
-    c.stroke();
-    c.restore();
-
-    // eyes on the sides of the head
-    for (const k of [1, -1]) {
-      const [x, y] = this.spinePoint(P, 0.06, k * 0.78);
-      c.fillStyle = '#0d0d0d'; c.beginPath(); c.arc(x, y, L * 0.017, 0, Math.PI * 2); c.fill();
-      c.fillStyle = 'rgba(255,255,255,0.7)'; c.beginPath(); c.arc(x - L * 0.005, y - L * 0.005, L * 0.006, 0, Math.PI * 2); c.fill();
-    }
-  }
+  prepare() { return null; }   // per-frame shape, shared by shadow() and draw()
+  shadow(c, g) {}
+  draw(c, g) {}
 }
 
-function syncFishCount() {
-  while (fish.length < S.fishCount) fish.push(new Fish());
-  if (fish.length > S.fishCount) fish.length = S.fishCount;
+// ---------- Particles: bubbles, petals or sparks ----------
+const glowCache = new Map();
+function glowSprite(color) {
+  if (glowCache.has(color)) return glowCache.get(color);
+  const cv = document.createElement('canvas'); cv.width = cv.height = 64;
+  const g = cv.getContext('2d'), grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grd.addColorStop(0, '#ffffff'); grd.addColorStop(0.12, color); grd.addColorStop(0.35, color + '66'); grd.addColorStop(1, color + '00');
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+  glowCache.set(color, cv); return cv;
 }
-syncFishCount();
-
-// ---------- Bubbles, ripples ----------
-const bubbles = [], ripples = [];
-function spawnBubbles(x, y, n, power = 1) {
+const particles = [];
+function spawnParticles(x, y, n, power = 1) {
+  const type = SCENE.particle || 'bubble', colors = SCENE.particleColors?.();
   for (let i = 0; i < n; i++) {
     const a = rand(0, Math.PI * 2), s = rand(0.05, 0.35) * UNIT * power;
-    bubbles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: rand(0.006, 0.02) * UNIT, life: rand(0.8, 1.8), age: 0 });
+    particles.push({ type, x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, r: rand(0.006, 0.02) * UNIT,
+      life: rand(0.8, 1.8) * (type === 'bubble' ? 1 : 1.4), age: 0, color: colors ? pick(colors) : '#ffffff', rot: rand(0, 6), spin: rand(-6, 6) });
   }
 }
-function splash(x, y) {
-  ripples.push({ x, y, age: 0 });
-  spawnBubbles(x, y, 26, 1);
-  const radius = S.reach * UNIT * 1.3;
-  for (const f of fish) f.scare(x, y, radius);
-  splashSound();
+function drawParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const b = particles[i]; b.age += dt;
+    if (b.age > b.life) { particles.splice(i, 1); continue; }
+    b.vx *= 1 - dt * 2.5; b.vy *= 1 - dt * 2.5;
+    b.x += b.vx * dt + Math.sin(b.age * 6 + b.r) * 8 * dt; b.y += b.vy * dt; b.rot += b.spin * dt;
+    const fa = 1 - b.age / b.life;
+    if (b.type === 'bubble') {
+      ctx.fillStyle = `rgba(200,235,255,${0.12 * fa})`; ctx.strokeStyle = `rgba(225,248,255,${0.6 * fa})`; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = `rgba(255,255,255,${0.8 * fa})`;
+      ctx.beginPath(); ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.22, 0, Math.PI * 2); ctx.fill();
+    } else if (b.type === 'petal') {
+      ctx.globalAlpha = Math.min(1, fa * 1.5); ctx.fillStyle = b.color;
+      ctx.beginPath(); ctx.ellipse(b.x, b.y, b.r * 1.1, b.r * 0.55, b.rot, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    } else {
+      const R = b.r * 2.5 * (0.6 + 0.4 * fa);
+      ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = fa;
+      ctx.drawImage(glowSprite(b.color), b.x - R, b.y - R, R * 2, R * 2);
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    }
+  }
 }
 
-// ---------- Water ----------
-// Caustics: the wobbly net of light you see on a pool floor, computed at low resolution and stretched (which also softens it)
+const ripples = [];
+function splash(x, y) {
+  if (!SCENE) return;
+  if (SCENE.waves) ripples.push({ x, y, age: 0 });
+  spawnParticles(x, y, 26, 1);
+  const radius = S.reach * UNIT * 1.3;
+  for (const f of critters) f.scare(x, y, radius);
+  SCENE.onSplash?.(x, y, radius);
+  SCENE.sound.splash?.();
+}
+
+// ---------- 2D background helpers (used when the GPU effects are off) ----------
+// Radial gradient from `centre` colour to `edge` colour (or the centre darkened by edgeK)
+function gradient(c, edgeK = 0.3, centre = LOOK.bg, edge = null) {
+  const g = S.bgGlow, k = 0.35 + 0.65 * g;
+  const grd = c.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.6);
+  const rgb = (col, m) => `rgb(${col.map(v => Math.round(v * m)).join(',')})`;
+  grd.addColorStop(0, rgb(centre, k));
+  grd.addColorStop(1, edge ? rgb(edge, k) : rgb(centre, k * edgeK));
+  c.fillStyle = grd; c.fillRect(0, 0, W, H);
+}
+// Caustics: the wobbly net of light on a pool floor, computed at low resolution and stretched (which softens it)
 const CW = 200; let CH = 112;
 const caustCv = document.createElement('canvas'), caustCtx = caustCv.getContext('2d');
 let caustImg = null, caustFrame = 0;
-function computeCaustics(time) {
+function computeCaustics(time, [cr, cg, cb]) {
   CH = Math.max(40, Math.round(CW * H / Math.max(1, W)));
   if (!caustImg || caustImg.height !== CH) { caustCv.width = CW; caustCv.height = CH; caustImg = caustCtx.createImageData(CW, CH); }
   const d = caustImg.data, TAU = 6.2831853, sc = 1.7 * TAU / CH, inten = 0.005;
@@ -545,66 +665,313 @@ function computeCaustics(time) {
     }
     c = 1.17 - Math.pow(c / 5, 1.4);
     const v = Math.min(1, Math.pow(Math.abs(c), 8));
-    d[k] = v * 175; d[k + 1] = v * 240; d[k + 2] = v * 255; d[k + 3] = 255; k += 4;
+    d[k] = v * cr; d[k + 1] = v * cg; d[k + 2] = v * cb; d[k + 3] = 255; k += 4;
   }
   caustCtx.putImageData(caustImg, 0, 0);
 }
-
+function caustics(c, t, alpha, color = LOOK.light) {
+  if (S.bgGlow <= 0) return;
+  if (caustFrame++ % 2 === 0) computeCaustics(t * 0.3 + 23, color);
+  c.save();
+  c.globalCompositeOperation = 'lighter'; c.globalAlpha = alpha * S.bgGlow; c.imageSmoothingEnabled = true;
+  c.drawImage(caustCv, 0, 0, W, H);
+  c.restore();
+}
+function drawBackground(t, useGpu) {
+  if (useGpu) { ctx.clearRect(0, 0, W, H); return; }   // the GPU draws the background under this layer
+  if (SCENE.draw2D) SCENE.draw2D(ctx, t); else gradient(ctx);
+}
 // Shadows are drawn small and stretched up, which blurs them softly
 const SH_SCALE = 1 / 6;
 const shadowCv = document.createElement('canvas'), shadowCtx = shadowCv.getContext('2d');
-
-const motes = Array.from({ length: 60 }, () => ({ x: Math.random(), y: Math.random(), r: rand(0.6, 2.2), a: rand(0.08, 0.3), p: rand(0, 10), sp: rand(0.003, 0.012) }));
-
-function drawWater(t) {
-  const g = S.bgGlow;
-  const grd = ctx.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.5, Math.hypot(W, H) * 0.6);
-  grd.addColorStop(0, `rgb(${Math.round(8 + 22 * g)},${Math.round(40 + 60 * g)},${Math.round(52 + 70 * g)})`);
-  grd.addColorStop(1, `rgb(${Math.round(2 + 4 * g)},${Math.round(12 + 18 * g)},${Math.round(20 + 26 * g)})`);
-  ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
-  if (g <= 0) return;
-  if (caustFrame++ % 2 === 0) computeCaustics(t * 0.3 + 23);
-  ctx.save();
-  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55 * g; ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(caustCv, 0, 0, W, H);
-  ctx.restore();
-}
-
-function drawShadows(geoms) {
+function drawShadows(items) {
+  const sh0 = SCENE.shadow;
+  if (!sh0) return;
   const sw = Math.max(1, Math.round(W * SH_SCALE)), sh = Math.max(1, Math.round(H * SH_SCALE));
   if (shadowCv.width !== sw || shadowCv.height !== sh) { shadowCv.width = sw; shadowCv.height = sh; }
   shadowCtx.setTransform(1, 0, 0, 1, 0, 0); shadowCtx.clearRect(0, 0, sw, sh);
   shadowCtx.fillStyle = '#000';
-  for (const [f, g] of geoms) {
-    const off = f.L * (0.1 + 0.3 * f.z);
+  for (const [f, g] of items) {
+    const off = f.L * (0.1 + 0.3 * Math.min(1, f.z)) * sh0.lift * (f.perched > 0 ? 0.25 : 1);
     shadowCtx.setTransform(SH_SCALE, 0, 0, SH_SCALE, off * 0.6 * SH_SCALE, off * SH_SCALE);
-    shadowCtx.fill(g.body); shadowCtx.fill(g.tail); shadowCtx.fill(g.fins);
+    f.shadow(shadowCtx, g);
   }
-  ctx.save(); ctx.globalAlpha = 0.38; ctx.imageSmoothingEnabled = true;
+  ctx.save(); ctx.globalAlpha = sh0.alpha ?? 0.38; ctx.imageSmoothingEnabled = true;
   ctx.drawImage(shadowCv, 0, 0, W, H); ctx.restore();
 }
-
+// Floating specks: dust in the water, pollen in the garden...
+const motes = Array.from({ length: 60 }, () => ({ x: Math.random(), y: Math.random(), r: rand(0.6, 2.2), a: rand(0.08, 0.3), p: rand(0, 10), sp: rand(0.003, 0.012) }));
 function drawMotes(t) {
+  const col = SCENE.motes;
+  if (!col) return;
   for (const m of motes) {
     const x = ((m.x + t * m.sp + Math.sin(t * 0.3 + m.p) * 0.01) % 1 + 1) % 1 * W;
     const y = ((m.y + Math.cos(t * 0.25 + m.p) * 0.01) % 1 + 1) % 1 * H;
-    ctx.fillStyle = `rgba(220,240,230,${m.a * (0.6 + 0.4 * Math.sin(t + m.p))})`;
+    ctx.fillStyle = `rgba(${col},${m.a * (0.6 + 0.4 * Math.sin(t + m.p))})`;
     ctx.beginPath(); ctx.arc(x, y, m.r, 0, Math.PI * 2); ctx.fill();
   }
 }
 
+// ---------- GPU layer (Three.js) ----------
+// A wave simulation runs on the GPU: hands, slaps and animals push it and the waves spread and bounce.
+// Each scene gives a bit of shader code that paints its background (water, sand, grass...) using it.
+// The 2D canvas becomes a transparent "animals layer" uploaded as a texture each frame.
+// If WebGL or the Three.js download fails, the 2D version is used.
+let gpu = null, gpuLoading = false;
+async function initGpu() {
+  if (gpu || gpuLoading) return;
+  gpuLoading = true;
+  try {
+    const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js');
+    gpu = createGpu(THREE);
+  } catch (e) {
+    console.warn('GPU effects unavailable, using 2D', e);
+    setStatus('gpuFail', true);
+    S.gpuWater = false; $('gpuWater').checked = false; save();
+  } finally { gpuLoading = false; }
+}
+function createGpu(THREE) {
+  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;   // colours are already sRGB, pass them straight through
+  renderer.autoClear = false;
+  const canvas = renderer.domElement; canvas.id = 'water';
+  stage.after(canvas);   // above the 2D canvas (which still gets the mouse), below the panel
+
+  const scene = new THREE.Scene(), cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2)); scene.add(quad);
+  const VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+  const MAX_DROPS = 40;
+
+  // r = surface height, g = vertical speed
+  const simMat = new THREE.ShaderMaterial({
+    vertexShader: VERT,
+    uniforms: {
+      uState: { value: null }, uTexel: { value: new THREE.Vector2() }, uAspect: { value: 1 },
+      uDrops: { value: Array.from({ length: MAX_DROPS }, () => new THREE.Vector4()) }, uDropCount: { value: 0 },
+    },
+    fragmentShader: `
+      uniform sampler2D uState; uniform vec2 uTexel; uniform float uAspect;
+      uniform vec4 uDrops[${MAX_DROPS}]; uniform int uDropCount;
+      varying vec2 vUv;
+      void main() {
+        vec4 s = texture2D(uState, vUv);
+        float avg = 0.25 * (texture2D(uState, vUv - vec2(uTexel.x, 0.0)).r + texture2D(uState, vUv + vec2(uTexel.x, 0.0)).r
+                          + texture2D(uState, vUv - vec2(0.0, uTexel.y)).r + texture2D(uState, vUv + vec2(0.0, uTexel.y)).r);
+        s.g += (avg - s.r) * 2.0;
+        s.g *= 0.993;          // waves fade out
+        s.r += s.g;
+        s.r *= 0.997;          // and the surface settles back flat
+        for (int i = 0; i < ${MAX_DROPS}; i++) {
+          if (i >= uDropCount) break;
+          vec4 d = uDrops[i];  // xy = centre (uv), z = radius (fraction of screen height), w = strength
+          float k = max(0.0, 1.0 - length((vUv - d.xy) * vec2(uAspect, 1.0)) / d.z);
+          s.r += (0.5 - 0.5 * cos(k * 3.14159265)) * d.w;
+        }
+        gl_FragColor = s;
+      }`,
+  });
+
+  let fishTex = null;
+  function makeFishTex() {
+    fishTex?.dispose();   // must be recreated whenever the 2D canvas changes size, or it stops updating
+    fishTex = new THREE.CanvasTexture(stage);
+    fishTex.premultiplyAlpha = true; fishTex.generateMipmaps = false;
+    fishTex.minFilter = THREE.LinearFilter; fishTex.magFilter = THREE.LinearFilter;
+  }
+
+  // One shader per scene, sharing these uniforms
+  const viewUniforms = {
+    uState: { value: null }, uFish: { value: null }, uTexel: { value: new THREE.Vector2() }, uAspect: { value: 1 },
+    uTime: { value: 0 }, uT: { value: 0 }, uGlow: { value: 0.5 },
+    uBg: { value: new THREE.Vector3() }, uLight: { value: new THREE.Vector3() },
+  };
+  const fragFor = sc => `
+    uniform sampler2D uState, uFish; uniform vec2 uTexel; uniform float uAspect, uTime, uT, uGlow;
+    uniform vec3 uBg, uLight;
+    varying vec2 vUv;
+    float hash(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+    float noise(vec2 p) {
+      vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+    float caustic(vec2 uv) {
+      vec2 p = vec2(uv.x * uAspect, 1.0 - uv.y) * 10.681415 - 250.0;
+      vec2 i = p; float c = 1.0;
+      for (int n = 0; n < 5; n++) {
+        float t = uTime * (1.0 - 3.5 / float(n + 1));
+        i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+        c += 1.0 / length(vec2(p.x / (sin(i.x + t) / 0.005), p.y / (cos(i.y + t) / 0.005)));
+      }
+      c = 1.17 - pow(c / 5.0, 1.4);
+      return clamp(pow(abs(c), 8.0), 0.0, 1.0);
+    }
+    ${sc.shader?.functions || ''}
+    void main() {
+      float h0 = texture2D(uState, vUv).r;
+      float hL = texture2D(uState, vUv - vec2(uTexel.x, 0.0)).r, hR = texture2D(uState, vUv + vec2(uTexel.x, 0.0)).r;
+      float hD = texture2D(uState, vUv - vec2(0.0, uTexel.y)).r, hU = texture2D(uState, vUv + vec2(0.0, uTexel.y)).r;
+      vec2 slope = vec2(hR - hL, hU - hD);
+      float shine = dot(slope, vec2(-0.6, 0.8));
+      vec2 p = vUv * vec2(uAspect, 1.0);
+      float r = length((vUv - vec2(0.5, 0.55)) * vec2(uAspect, 1.0)) / (0.6 * length(vec2(uAspect, 1.0)));
+      vec3 base = uBg / 255.0 * (0.35 + 0.65 * uGlow), light = uLight / 255.0;
+      vec3 col = mix(base, base * 0.3, clamp(r, 0.0, 1.0));
+      vec2 bend = vec2(0.0);
+      ${sc.shader?.background || ''}
+      vec4 f = texture2D(uFish, vUv + bend);
+      col = f.rgb + col * (1.0 - f.a);
+      ${sc.shader?.surface || ''}
+      gl_FragColor = vec4(col, 1.0);
+    }`;
+  const mats = new Map();
+  const matFor = sc => {
+    if (!mats.has(sc.id)) mats.set(sc.id, new THREE.ShaderMaterial({ vertexShader: VERT, uniforms: viewUniforms, fragmentShader: fragFor(sc) }));
+    return mats.get(sc.id);
+  };
+
+  let SW = 1, SH = 1, rtA = null, rtB = null;
+  const drops = [];
+  function resizeGpu() {
+    renderer.setPixelRatio(Math.min(DPR, 1.5));
+    renderer.setSize(W, H, false);
+    makeFishTex();
+    SH = 256; SW = Math.max(1, Math.round(SH * W / Math.max(1, H)));
+    rtA?.dispose(); rtB?.dispose();
+    const make = () => new THREE.WebGLRenderTarget(SW, SH, {
+      type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: false,
+      minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+    });
+    rtA = make(); rtB = make();
+    renderer.setClearColor(0x000000, 0);
+    for (const rt of [rtA, rtB]) { renderer.setRenderTarget(rt); renderer.clear(); }
+    renderer.setRenderTarget(null);
+    simMat.uniforms.uTexel.value.set(1 / SW, 1 / SH); viewUniforms.uTexel.value.set(1 / SW, 1 / SH);
+    simMat.uniforms.uAspect.value = viewUniforms.uAspect.value = W / Math.max(1, H);
+  }
+  resizeGpu();
+  window.addEventListener('resize', resizeGpu);   // registered after resize(), so the 2D canvas is already the new size
+
+  function step(withDrops) {
+    const u = simMat.uniforms;
+    u.uState.value = rtA.texture;
+    u.uDropCount.value = 0;
+    if (withDrops) {
+      const n = Math.min(MAX_DROPS, drops.length);
+      for (let i = 0; i < n; i++) u.uDrops.value[i].set(...drops[i]);
+      u.uDropCount.value = n; drops.length = 0;
+    }
+    quad.material = simMat;
+    renderer.setRenderTarget(rtB); renderer.render(scene, cam);
+    [rtA, rtB] = [rtB, rtA];
+  }
+  return {
+    canvas,
+    // x, y, radius in screen px; strength > 0 lifts the surface, < 0 pushes it down
+    drop(x, y, radius, strength) {
+      if (Math.abs(strength) < 1e-5) return;
+      const d = [x / W, 1 - y / H, radius / Math.max(1, H), strength];
+      if (Math.abs(strength) > 0.1) drops.unshift(d); else if (drops.length < MAX_DROPS) drops.push(d);   // slaps always get in
+    },
+    render(t) {
+      step(true); step(false);
+      const u = viewUniforms;
+      u.uState.value = rtA.texture; u.uFish.value = fishTex;
+      u.uTime.value = t * 0.3 + 23; u.uT.value = t; u.uGlow.value = S.bgGlow;
+      u.uBg.value.set(...LOOK.bg); u.uLight.value.set(...(LOOK.light || LOOK.bg));
+      fishTex.needsUpdate = true;
+      quad.material = matFor(SCENE);
+      renderer.setRenderTarget(null); renderer.render(scene, cam);
+    },
+  };
+}
+let useGpu = false;
+// push the water (or whatever the scene's surface is) at x, y
+function wave(x, y, radius, strength) { if (useGpu && SCENE.waves) gpu.drop(x, y, radius, strength); }
+
+// ---------- Scenes ----------
+// Everything a scene file can use
+const api = {
+  get W() { return W; }, get H() { return H; }, get UNIT() { return UNIT; }, get DPR() { return DPR; },
+  get S() { return S; }, get LOOK() { return LOOK; }, get stage() { return stageIndex(); }, get scene() { return SCENE; },
+  ctx, rand, pick, Critter, foods, wave, spawnParticles, glowSprite, gradient, caustics,
+  sounds: { bloop, bell, PENTA },
+};
+const SCENES = new Map();
+let SCENE = null, LOOK = null;
+// Loads every .js file in scenes/ (files starting with _ are skipped). The folder listing comes from the
+// local server; on hosts that don't list folders, scenes/index.json names the files instead.
+async function loadScenes() {
+  let files = [];
+  try {
+    const res = await fetch('scenes/', { cache: 'no-store' });
+    if (res.ok) files = [...(await res.text()).matchAll(/href="([^"?#/]+\.js)"/g)].map(m => decodeURIComponent(m[1]));
+  } catch {}
+  if (!files.length) try { files = await (await fetch('scenes/index.json', { cache: 'no-store' })).json(); } catch {}
+  files = [...new Set(files)].filter(f => !f.startsWith('_'));
+  const loaded = await Promise.all(files.map(async f => {
+    try {
+      const sc = (await import(`./scenes/${f}`)).default(api);
+      sc.id ||= f.replace(/\.js$/, '');
+      return sc;
+    } catch (e) { console.warn(`Scene ${f} could not load:`, e); return null; }
+  }));
+  for (const sc of loaded.filter(Boolean).sort((a, b) => (a.order ?? 99) - (b.order ?? 99))) SCENES.set(sc.id, sc);
+}
+
+function spawnCritters() {
+  const n = S.fishCount;
+  critters = SCENE.spawn ? SCENE.spawn(n) : Array.from({ length: n }, () => new SCENE.Critter(pick(LOOK.looks)));
+}
+// Rebuild everything after a scene or age change
+function applyScene() {
+  SCENE = SCENES.get(S.scene) || SCENES.values().next().value;
+  LOOK = SCENE.stages[Math.min(stageIndex(), SCENE.stages.length - 1)];
+  foods.length = 0; particles.length = 0; ripples.length = 0;
+  spawnCritters();
+  SCENE.decor?.init?.();
+  for (const b of document.querySelectorAll('#scenes button')) b.setAttribute('aria-pressed', String(b.dataset.id === SCENE.id));
+}
+function buildSceneButtons() {
+  const box = $('scenes'); box.innerHTML = '';
+  for (const sc of SCENES.values()) {
+    const b = document.createElement('button');
+    b.dataset.id = sc.id; b.setAttribute('aria-pressed', String(sc === SCENE));
+    b.innerHTML = `<span class="ico">${sc.icon || '✨'}</span>${sc.name?.[S.lang] || sc.name?.en || sc.id}`;
+    b.addEventListener('click', () => switchScene(sc.id));
+    box.appendChild(b);
+  }
+}
+// Fade to black, swap, fade back in
+let switching = false, lastSwitch = performance.now();
+function switchScene(id) {
+  if (switching || id === SCENE?.id || !SCENES.has(id)) return;
+  switching = true; lastSwitch = performance.now();
+  $('fade').classList.add('on');
+  setTimeout(() => {
+    S.scene = id; save(); applyScene();
+    $('fade').classList.remove('on'); switching = false;
+  }, 600);
+}
+const sceneIds = () => [...SCENES.keys()];
+const nextScene = () => { const ids = sceneIds(); switchScene(ids[(ids.indexOf(SCENE.id) + 1) % ids.length]); };
+
+function updateAgeText() {
+  const age = ageNow();
+  $('ageMonths').value = Math.min(24, age); $('ageMonths').disabled = !!S.birthday;
+  $('ageVal').textContent = T().months(age);
+  $('ageHint').textContent = T().stageNames[stageIndex()];
+}
+
 // ---------- Hands ----------
-// A "hand" (from camera or mouse): { x, y (screen px, smoothed), r (screen px radius), energy, src }
+// A "hand" (from camera or mouse): { x, y (screen px, smoothed), r (screen px radius), energy }
 let tracks = [];          // camera hand tracks
 let mouseHand = null;     // mouse test hand
 let meterLevel = 0;
-
 function handsNow(now) {
   const list = tracks.filter(t => now - t.seen < 250);
-  if (mouseHand && now - mouseHand.seen < 1500) list.push(mouseHand);
+  if (mouseHand && now - mouseHand.seen < 10000) list.push(mouseHand);   // a resting mouse counts as a resting hand
   return list;
 }
-
 function updateTracks(results, now) {
   const dets = [];
   for (const lm of results.landmarks || []) {
@@ -622,14 +989,12 @@ function updateTracks(results, now) {
     if (!best) { best = { hist: [], energy: 0, cooldown: 0, x: 0, y: 0, r: 0, fresh: true }; tracks.push(best); }
     used.add(best);
     Object.assign(best, { cx: d.cx, cy: d.cy, size: d.size, lm: d.lm, seen: now });
-
     // screen position (smoothed)
     const [sx, sy] = camToScreen(d.cx, d.cy);
     const [ex, ey] = camToScreen(d.lm[9].x, d.lm[9].y), [wx, wy] = camToScreen(d.lm[0].x, d.lm[0].y);
     const r = Math.max(UNIT * 0.04, Math.hypot(ex - wx, ey - wy) * 1.1);
-    if (best.fresh) { best.x = sx; best.y = sy; best.r = r; best.fresh = false; ripples.push({ x: sx, y: sy, age: 0, size: 0.4 }); }
+    if (best.fresh) { best.x = sx; best.y = sy; best.r = r; best.fresh = false; if (SCENE?.waves) ripples.push({ x: sx, y: sy, age: 0, size: 0.4 }); }
     else { best.x += (sx - best.x) * 0.5; best.y += (sy - best.y) * 0.5; best.r += (r - best.r) * 0.3; }
-
     // slap energy: speed in hand-lengths per second, plus how fast the hand grows/shrinks (moving toward/away from camera)
     const vw = video.videoWidth || 1, vh = video.videoHeight || 1;
     best.hist.push({ t: now, x: d.cx * vw, y: d.cy * vh, s: d.size });
@@ -640,7 +1005,6 @@ function updateTracks(results, now) {
       const depth = Math.abs(Math.log(b.s / a.s)) / dt;
       best.energy = planar + 4 * depth;
     } else best.energy = 0;
-
     if (best.energy > S.slapThresh && now > best.cooldown) {
       best.cooldown = now + 600;
       splash(best.x, best.y);
@@ -651,20 +1015,23 @@ function updateTracks(results, now) {
   meterLevel = Math.max(e, meterLevel * 0.85);
 }
 
-// Mouse test: move = hand, click = slap
+// Mouse test: move = hand, hold still = food, click = slap
+let mouseTimer = 0;
 stage.addEventListener('pointermove', e => {
   const now = performance.now();
   if (!mouseHand) mouseHand = { x: e.clientX, y: e.clientY, r: UNIT * 0.06, energy: 0 };
   mouseHand.x = e.clientX; mouseHand.y = e.clientY; mouseHand.seen = now;
+  // show the ⚙︎ button for a few seconds while the panel is hidden
+  document.body.classList.add('mouse-awake');
+  clearTimeout(mouseTimer); mouseTimer = setTimeout(() => document.body.classList.remove('mouse-awake'), 2500);
 });
 stage.addEventListener('pointerdown', e => { audio(); splash(e.clientX, e.clientY); });
 stage.addEventListener('pointerleave', () => { mouseHand = null; });
 
 // ---------- Camera + MediaPipe ----------
 let landmarker = null, lastVideoTime = -1;
-
 async function loadLandmarker() {
-  setStatus('Loading hand tracker…');
+  setStatus('loading');
   const { FilesetResolver, HandLandmarker } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
   const files = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
   const opts = delegate => ({
@@ -675,7 +1042,6 @@ async function loadLandmarker() {
   try { landmarker = await HandLandmarker.createFromOptions(files, opts('GPU')); }
   catch { landmarker = await HandLandmarker.createFromOptions(files, opts('CPU')); }
 }
-
 async function listCameras() {
   const sel = $('cameraSel');
   const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
@@ -683,7 +1049,6 @@ async function listCameras() {
   devs.forEach((d, i) => { const o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || `Camera ${i + 1}`; sel.appendChild(o); });
   if (S.cameraId && devs.some(d => d.deviceId === S.cameraId)) sel.value = S.cameraId;
 }
-
 async function startCamera() {
   audio();
   const btn = $('startBtn'); btn.disabled = true;
@@ -699,11 +1064,11 @@ async function startCamera() {
     const id = stream.getVideoTracks()[0].getSettings().deviceId; if (id) $('cameraSel').value = id;
     preview.height = Math.round(preview.width * video.videoHeight / video.videoWidth);
     if (!landmarker) await loadLandmarker();
-    btn.textContent = 'Restart camera';
-    setStatus(S.calib ? 'Tracking hands. Press H to hide this panel.' : 'Tracking hands. Next: Calibrate (C) so fish line up with the floor.');
+    btn.textContent = T().restart;
+    setStatus(S.calib ? 'readyCal' : 'readyNoCal');
   } catch (err) {
     console.error(err);
-    setStatus('Camera or hand tracker failed: ' + (err.message || err), true);
+    setStatus('camFail', true, err.message || err);
   } finally { btn.disabled = false; }
 }
 $('startBtn').addEventListener('click', startCamera);
@@ -720,14 +1085,12 @@ function drawPreview(now) {
   if (document.body.classList.contains('clean')) return;
   const pw = preview.width, ph = preview.height;
   if (video.readyState >= 2) pctx.drawImage(video, 0, 0, pw, ph);
-  else { pctx.fillStyle = '#111'; pctx.fillRect(0, 0, pw, ph); pctx.fillStyle = '#789'; pctx.font = '13px system-ui'; pctx.fillText('Camera off', 12, 22); }
-
+  else { pctx.fillStyle = '#111'; pctx.fillRect(0, 0, pw, ph); pctx.fillStyle = '#789'; pctx.font = '28px system-ui'; pctx.textAlign = 'center'; pctx.fillText('📷', pw / 2, ph / 2 + 10); pctx.textAlign = 'start'; }
   for (const t of tracks) {
     if (now - t.seen > 250 || !t.lm) continue;
     pctx.fillStyle = t.energy > S.slapThresh ? '#ff5d5d' : '#7dffb0';
     for (const p of t.lm) { pctx.beginPath(); pctx.arc(p.x * pw, p.y * ph, 2.2, 0, Math.PI * 2); pctx.fill(); }
   }
-
   const pts = calibrating ? calClicks : (S.calib ? S.calib.cam : []);
   if (pts.length) {
     pctx.strokeStyle = '#ffcf5c'; pctx.lineWidth = 2; pctx.beginPath();
@@ -740,7 +1103,6 @@ function drawPreview(now) {
   m.style.background = meterLevel > S.slapThresh ? 'var(--warn)' : 'var(--ok)';
   mark.style.left = (S.slapThresh / maxE * 100) + '%';
 }
-
 function drawCalibrationTargets() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.beginPath();
@@ -760,13 +1122,19 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   detect(now);
-
+  useGpu = !!(S.gpuWater && gpu);
+  if (gpu) gpu.canvas.style.display = useGpu && !calibrating ? 'block' : 'none';
   if (calibrating) { drawCalibrationTargets(); drawPreview(now); requestAnimationFrame(frame); return; }
-
+  if (S.autoScene > 0 && now - lastSwitch > S.autoScene * 60000) nextScene();
   const t = now / 1000, hands = handsNow(now);
-  drawWater(t);
-
-  // Soft light under each hand: looks magical and also lights her hand so the camera sees it better
+  for (const h of hands) {
+    h.speed = h._px == null ? 0 : Math.hypot(h.x - h._px, h.y - h._py) / Math.max(dt, 1e-3);
+    h._px = h.x; h._py = h.y;
+  }
+  drawBackground(t, useGpu);
+  SCENE.decor?.draw?.(ctx, t, dt, hands);
+  if (SCENE.food?.layer !== 'over') for (const f of foods) SCENE.food.draw(ctx, f, t, dt);
+  // Soft light under each hand: looks magical and also lights baby's hand so the camera sees it better
   for (const h of hands) {
     if (S.handGlow) {
       const r = Math.max(h.r * 2.2, UNIT * 0.1);
@@ -774,21 +1142,30 @@ function frame(now) {
       g.addColorStop(0, 'rgba(255,240,200,0.35)'); g.addColorStop(1, 'rgba(255,240,200,0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.fill();
     }
-    if (Math.random() < dt * 3) spawnBubbles(h.x + rand(-1, 1) * h.r, h.y + rand(-1, 1) * h.r, 1, 0.15);
+    if (Math.random() < dt * 2) spawnParticles(h.x + rand(-1, 1) * h.r, h.y + rand(-1, 1) * h.r, 1, 0.15);
   }
-
-  for (const f of fish) f.update(dt, hands, fish);
-  // fish nearer the surface (higher z) are drawn on top
-  const geoms = fish.map(f => [f, f.geometry()]).sort((a, b) => a[0].z - b[0].z);
-  drawShadows(geoms);
-  for (const [f, g] of geoms) f.draw(ctx, g);
+  updateFoods(dt, hands);
+  for (const f of critters) f.update(dt, hands, critters);
+  if (useGpu && SCENE.waves) {
+    // Hands stir the surface as they move and make soft rings while resting; animals leave a small wake
+    for (const h of hands) gpu.drop(h.x, h.y, Math.max(h.r * 0.8, UNIT * 0.03), -Math.min(0.12, h.speed / UNIT * 0.04) + 0.004 * Math.sin(t * 6));
+    if (SCENE.wake) for (const f of critters) {
+      const [hx, hy] = f.mouth();
+      gpu.drop(hx, hy, Math.max(f.L * 0.12, UNIT * 0.01), (-0.004 * f.swim - (f.scared > 0 ? 0.008 : 0)) * SCENE.wake);
+    }
+  }
+  // higher up = drawn on top
+  const items = critters.map(f => [f, f.prepare()]).sort((a, b) => a[0].z - b[0].z);
+  drawShadows(items);
+  for (const [f, g] of items) f.draw(ctx, g);
+  if (SCENE.food?.layer === 'over') for (const f of foods) SCENE.food.draw(ctx, f, t, dt);
   drawMotes(t);
-
-  // ripples
+  // ripples (in GPU mode they go into the wave simulation instead)
   for (let i = ripples.length - 1; i >= 0; i--) {
     const r = ripples[i]; r.age += dt;
     if (r.age > 1.4) { ripples.splice(i, 1); continue; }
     const size = r.size || 1;
+    if (useGpu) { if (!r.sent) { r.sent = true; gpu.drop(r.x, r.y, UNIT * 0.05 * size, -1.5 * size); } continue; }
     for (let k = 0; k < 4; k++) {
       const a = r.age - k * 0.14; if (a <= 0) continue;
       const rad = a * UNIT * 0.42 * size, fade = Math.max(0, 1 - a / 1.25) * (1 - k * 0.18);
@@ -799,38 +1176,59 @@ function frame(now) {
       ctx.beginPath(); ctx.arc(r.x, r.y, rad, 0, Math.PI * 2); ctx.stroke();
     }
   }
-  // bubbles
-  for (let i = bubbles.length - 1; i >= 0; i--) {
-    const b = bubbles[i]; b.age += dt;
-    if (b.age > b.life) { bubbles.splice(i, 1); continue; }
-    b.vx *= 1 - dt * 2.5; b.vy *= 1 - dt * 2.5;
-    b.x += b.vx * dt + Math.sin(b.age * 6 + b.r) * 8 * dt; b.y += b.vy * dt;
-    const fa = 1 - b.age / b.life;
-    ctx.fillStyle = `rgba(200,235,255,${0.12 * fa})`; ctx.strokeStyle = `rgba(225,248,255,${0.6 * fa})`; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = `rgba(255,255,255,${0.8 * fa})`;
-    ctx.beginPath(); ctx.arc(b.x - b.r * 0.35, b.y - b.r * 0.35, b.r * 0.22, 0, Math.PI * 2); ctx.fill();
-  }
-
+  drawParticles(dt);
   if (S.showDots) for (const h of hands) {
     ctx.strokeStyle = '#ffcf5c'; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2); ctx.stroke();
   }
-
+  if (useGpu) gpu.render(t);
   drawPreview(now);
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
 
-// ---------- Keys ----------
+// ---------- Controls ----------
+for (const key of ['fishCount', 'fishSize', 'reach', 'speed', 'slapThresh', 'bgGlow', 'volume']) {
+  const el = $(key); el.value = S[key];
+  el.addEventListener('input', () => { S[key] = parseFloat(el.value); save(); if (key === 'fishCount' && SCENE) spawnCritters(); });
+}
+for (const key of ['handGlow', 'showDots', 'mirror', 'gpuWater']) {
+  const el = $(key); el.checked = S[key];
+  el.addEventListener('change', () => { S[key] = el.checked; save(); if (key === 'gpuWater' && el.checked) initGpu(); });
+}
+$('ageMonths').value = S.ageMonths; $('birthday').value = S.birthday;
+$('ageMonths').addEventListener('input', e => { S.ageMonths = +e.target.value; save(); updateAgeText(); applyScene(); });
+$('birthday').addEventListener('change', e => { S.birthday = e.target.value; save(); updateAgeText(); applyScene(); });
+$('autoScene').value = String(S.autoScene);
+$('autoScene').addEventListener('change', e => { S.autoScene = +e.target.value; lastSwitch = performance.now(); save(); });
+
+$('goBtn').addEventListener('click', () => {
+  document.body.classList.add('clean');
+  document.documentElement.requestFullscreen?.().catch(() => {});
+});
+$('menuBtn').addEventListener('click', () => {
+  document.body.classList.remove('clean');
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+});
+
 window.addEventListener('keydown', e => {
-  if (e.target.tagName === 'SELECT') return;
-  const k = e.key.toLowerCase();
+  if (['SELECT', 'INPUT'].includes(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+  const k = e.key.toLowerCase(), ids = sceneIds();
   if (k === 'h') document.body.classList.toggle('clean');
   else if (k === 'f') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => {}); }
-  else if (k === 'c') calibrating ? endCalibration() : startCalibration();
-  else if (k === 'escape' && calibrating) { endCalibration(); setStatus('Calibration cancelled.'); }
+  else if (k === 'c') calibrating ? (endCalibration(), setStatus('calCancel')) : startCalibration();
+  else if (k === 'n' && SCENE) nextScene();
+  else if (/^[1-9]$/.test(k) && ids[+k - 1]) switchScene(ids[+k - 1]);
+  else if (k === 'escape' && calibrating) { endCalibration(); setStatus('calCancel'); }
 });
+
+await loadScenes();
+if (!SCENES.size) { applyLang(); setStatus('noScenes', true); }
+else {
+  applyScene();
+  applyLang();
+  if (S.gpuWater) initGpu();
+  requestAnimationFrame(frame);
+}
 </script>
 </body>
 </html>
